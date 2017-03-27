@@ -1,3 +1,4 @@
+import user
 from api.user import api
 from flask import Flask
 from flask_pymongo import *

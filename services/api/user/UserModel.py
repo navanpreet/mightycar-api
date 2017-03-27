@@ -1,11 +1,14 @@
-from  flask import flask
+from flask import Flask
 from flask_pymongo import *
 from flask import json
 from bson.objectid import ObjectId
+from flask_pymongo import *
 import json
-from ..util.JSONEncoder import JSONEncoder
+import sys
+sys.path.append('..')
+from util import JSONEncoder as JSONEncoder
 import json
-from ..config import mongo
+from config import mongo
 
 app = Flask(__name__)
 
@@ -39,28 +42,54 @@ class User():
 
 		return list(users)
 
-    def createOne(self, userData):
-        newUser = mongo.db.user.insert_one(userData)
-        if (newUser == None):
-                return {}
+	def getByUsername(self, username):
+		userResult = mongo.db.user.find_one({'username': username})
+		if userResult == None:
+			return {}
 
-        return newUser
+		return userResult
 
-    def updateOne(self, id, userData):
-        updatedUser = mongo.db.user.update_one({'_id':ObjectId(id)}, {"$set": userData})
-        if (updatedUser == None):
-            return {}
 
-        return updatedUser
+	def createOne(self, userData):
+		
+		checkUnique = mongo.db.user.find({'email': userData['email']}).limit(1)
+		if(list(checkUnique) != []):
+			return "email already exists"
+
+		checkUnique = mongo.db.user.find({'username': userData['username']}).limit(1)
+		if(list(checkUnique) != []):
+			return "username already exists"	
+
+		newUser = mongo.db.user.insert_one(userData)
+		if (newUser == None):
+			return {}
+		return newUser
+
+	def createAuthenticationToken(self, tokenData):
+		newToken = mongo.db.authentication_token.insert_one(tokenData)
+		if(newToken == None):
+			return {}
+		return newToken
+
+	def createEmailVerficationToken(self, verificationTokenData):
+		newToken = mongo.db.verification_token.insert_one(verificationTokenData)
+		if(newToken == None):
+			return {}
+		return newToken	
+
+	def updateOne(self, id, userData):
+		updatedUser = mongo.db.user.update_one({'_id':ObjectId(id)}, {"$set": userData})
+		if (updatedUser == None):
+			return {}
+		return updatedUser
+
+	def delete(self, id):
+		deletedUser = mongo.db.user.delete_one({'_id': ObjectId(id)})
+		return deletedUser						
  
-    def delete(self, id):
-        deletedUser = mongo.db.user.delete_one({'_id': ObjectId(id)})
+	def search(self, criteria):
+		users = mongo.db.vehicle.find(criteria)
+		if (users == None):
+			return []
  
-        return deletedUser
- 
-    def search(self, criteria):
-        users = mongo.db.vehicle.find(criteria)
-        if (users == None):
-            return []
- 
-        return json.loads(JSONEncoder().encode(list(users)))		
+		return json.loads(JSONEncoder().encode(list(users)))		
